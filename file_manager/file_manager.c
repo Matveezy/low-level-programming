@@ -1,8 +1,11 @@
 #include "file_manager.h"
 
-struct file file_open(const char *file_path) {
+storeFile fileOpenOrCreate(const char *filename) {
     FILE *file;
-    if ((file = fopen(file_path, "rw")) == NULL) return (struct file) {.state = OPEN_ERROR, file = NULL};
-    return (struct file) {.state = EXCELLENT, file = file};
+    if ((file = fopen(filename, "rb+")) == NULL) { // FILE DOESN'T EXIST
+        file = fopen(filename, "w+b"); // CREATE FILE FOR READ/WRITE
+        if (file) return (storeFile) {.state = CREATED_FILE, file = file};
+        else return (storeFile) {.state = CREATE_ERROR, file = NULL};
+    } else return (storeFile) {.state = EXCELLENT, file = file};
 }
 
