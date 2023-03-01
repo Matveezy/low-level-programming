@@ -3,13 +3,13 @@
 
 #include "../includes.h"
 
-typedef uint16_t ItemOffset;
-typedef uint16_t ItemLength;
+typedef uint16_t item_offset;
+typedef uint16_t item_length;
 
-typedef struct ItemIdData {
-    ItemOffset offset; // offset to tuple from page start
-    ItemLength length; // length of tuple
-} ItemIdData;
+typedef struct item_id_data {
+    item_offset offset; // offset to tuple from page start
+    item_length length; // length of tuple
+} item_id_data;
 
-typedef ItemIdData *ItemId;
+typedef struct item_id_data *item_id;
 #endif //LOW_LEVEL_PROGRAMMING_1_ITEM_IDENTIFIER_H
