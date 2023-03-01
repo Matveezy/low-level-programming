@@ -37,7 +37,7 @@ read_status read_table_header(FILE *storage, const char *table_name, table_heade
 
 read_status read_columns_of_table(FILE *storage, table *table) {
     uint16_t *size_of_column_array = malloc(sizeof(uint16_t));
-    column *columns = malloc(sizeof(columns) * table->table_header->table_schema.column_count);
+    column *columns = malloc(sizeof(column) * table->table_header->table_schema.column_count);
     fseek(storage, (table->table_header->first_page_number - 1) * PAGE_SIZE + sizeof(page_header), SEEK_SET);
     if (fread(size_of_column_array, sizeof(uint16_t), 1, storage) != 1) {
         return READ_ERROR;

@@ -30,7 +30,6 @@ typedef struct table_schema {
     row_length row_length;
     column *columns;
     column *last_column;
-
 } table_schema;
 
 typedef struct table {
