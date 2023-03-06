@@ -43,7 +43,7 @@ void destroy_column_list(column *column_list) {
 }
 
 void
-add_back_column_to_list(table_schema *table_schema, const char *column_name, column_type column_type, uint16_t size) {
+add_back_column_to_list(table_schema *table_schema, const char *column_name, column_type column_type) {
     column *new_column = create_column(column_name, column_type);
     if (NULL != table_schema->last_column) {
         table_schema->last_column->next = new_column;
@@ -64,23 +64,23 @@ void add_back_string_column_to_list(table_schema *table_schema, const char *colu
 
 column *create_string_column(const char *column_name, column_type column_type, uint16_t size) {
     if (column_type != TYPE_STRING) {
-        printf("Неправильно указан тип!");
+        printf("\nНеправильно указан тип!\n");
         return NULL;
     }
-    column *created_column = malloc(sizeof(column));
+    column *created_column = malloc(sizeof(struct column));
     if (NULL == created_column) {
         return NULL;
     }
     strncpy(created_column->column_name, "", COLUMN_NAME_LENGTH);
     strncpy(created_column->column_name, column_name, strlen(column_name));
-    created_column->column_type = TYPE_STRING;
+    created_column->column_type = column_type;
     created_column->column_size = sizeof(char) * size;
     created_column->next = NULL;
     return created_column;
 }
 
 column *delete_column_from_list(column *cur, const char *column_name, table_schema *table_schema) {
-    column *next = NULL;
+    column *next;
     if (NULL == cur) {
         return NULL;
     } else if (strcmp(cur->column_name, column_name) == 0) {
@@ -97,7 +97,7 @@ column *delete_column_from_list(column *cur, const char *column_name, table_sche
 }
 
 column *create_column(const char *column_name, column_type column_type) {
-    column *new_column = malloc(sizeof(column));
+    column *new_column = malloc(sizeof(struct column));
     if (NULL == new_column) {
         return NULL;
     }
@@ -123,7 +123,7 @@ column *create_column(const char *column_name, column_type column_type) {
 }
 
 table_schema *create_table_schema() {
-    table_schema *table_schema = malloc(sizeof(table_schema));
+    table_schema *table_schema = malloc(sizeof(struct table_schema));
     if (NULL == table_schema) {
         return NULL;
     }
@@ -140,14 +140,14 @@ void close_table_schema(table_schema *table_schema) {
 }
 
 table_schema *
-add_column_to_schema(table_schema *table_schema, const char *column_name, column_type column_type, uint16_t size) {
+add_column_to_schema(table_schema *table_schema, const char *column_name, column_type column_type) {
     if (column_exists(table_schema->columns, table_schema->column_count, column_name) == 0) {
-        add_back_column_to_list(table_schema, column_name, column_type, size);
+        add_back_column_to_list(table_schema, column_name, column_type);
         table_schema->column_count += 1;
-        table_schema->row_length = table_schema->last_column->column_size;
+        table_schema->row_length += table_schema->last_column->column_size;
         return table_schema;
     } else {
-        printf("Колонка с данным названием уже есть в схеме!");
+        printf("\nКолонка с названием %s уже есть в схеме!\n", column_name);
         return table_schema;
     }
 }
@@ -158,10 +158,10 @@ add_string_column_to_schema(table_schema *table_schema, const char *column_name,
     if (column_exists(table_schema->columns, table_schema->column_count, column_name) == 0) {
         add_back_string_column_to_list(table_schema, column_name, column_type, size);
         table_schema->column_count += 1;
-        table_schema->row_length = table_schema->last_column->column_size;
+        table_schema->row_length += table_schema->last_column->column_size;
         return table_schema;
     } else {
-        printf("Колонка с данным названием уже есть в схеме!");
+        printf("\nКолонка с названием %s уже есть в схеме!\n", column_name);
         return table_schema;
     }
 }
