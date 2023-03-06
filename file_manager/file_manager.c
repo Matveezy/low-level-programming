@@ -395,11 +395,11 @@ update_where(FILE *file, struct table *table, expanded_query *first, expanded_qu
     struct page_header *ph = malloc(sizeof(struct page_header));
 
     fseek(file, (table->table_header->first_page_number - 1) * PAGE_SIZE, SEEK_SET);
-    fread(ph, sizeof(struct page_header), 1, file); //прочитали заголовок страницы
+    fread(ph, sizeof(struct page_header), 1, file);
 
     fseek(file,
           (table->table_header->first_page_number - 1) * PAGE_SIZE + sizeof(struct page_header) + sizeof(uint16_t) +
-          sizeof(struct column) * table->table_schema->column_count, SEEK_SET); //передвинулись на начало строк
+          sizeof(struct column) * table->table_schema->column_count, SEEK_SET);
 
     while (current_pointer != ph->page_free_space_seek) {
 
@@ -408,7 +408,7 @@ update_where(FILE *file, struct table *table, expanded_query *first, expanded_qu
         if (rh->valid) {
             uint32_t pointer_to_update = current_pointer + sizeof(struct row_header);
             fread(pointer_to_read_row, table->table_schema->row_length, 1,
-                  file); //прочитали всю строку и у нас есть указатель на нее
+                  file);
 
             switch (first->column_type) {
                 case TYPE_INT32:
@@ -472,11 +472,11 @@ void delete_where(FILE *file, struct table *table, struct expanded_query *expand
     struct page_header *ph = malloc(sizeof(struct page_header));
 
     fseek(file, (table->table_header->first_page_number - 1) * PAGE_SIZE, SEEK_SET);
-    fread(ph, sizeof(struct page_header), 1, file); //прочитали заголовок страницы
+    fread(ph, sizeof(struct page_header), 1, file);
 
     fseek(file,
           (table->table_header->first_page_number - 1) * PAGE_SIZE + sizeof(struct page_header) + sizeof(uint16_t) +
-          sizeof(struct column) * table->table_schema->column_count, SEEK_SET); //передвинулись на начало строк
+          sizeof(struct column) * table->table_schema->column_count, SEEK_SET);
 
     while (current_pointer != ph->page_free_space_seek) {
 
@@ -485,7 +485,7 @@ void delete_where(FILE *file, struct table *table, struct expanded_query *expand
         if (rh->valid) {
             fseek(file, (ph->page_number - 1) * PAGE_SIZE + current_pointer + sizeof(struct row_header), SEEK_SET);
             fread(pointer_to_read_row, table->table_schema->row_length, 1,
-                  file); //прочитали всю строку и у нас есть указатель на нее
+                  file);
 
             switch (expanded->column_type) {
                 case TYPE_INT32:
@@ -550,11 +550,11 @@ join(FILE *file, table *left_table, table *right_table, expanded_query *left_exp
 
     struct page_header *ph = malloc(sizeof(struct page_header));
     fseek(file, (left_table->table_header->first_page_number - 1) * PAGE_SIZE, SEEK_SET);
-    fread(ph, sizeof(struct page_header), 1, file); //прочитали заголовок страницы
+    fread(ph, sizeof(struct page_header), 1, file);
 
     fseek(file, (left_table->table_header->first_page_number - 1) * PAGE_SIZE + sizeof(struct page_header) +
                 sizeof(uint16_t) + sizeof(struct column) * left_table->table_schema->column_count,
-          SEEK_SET); //передвинулись на начало строк
+          SEEK_SET);
 
     while (current_pointer != ph->page_free_space_seek) {
 
@@ -563,7 +563,7 @@ join(FILE *file, table *left_table, table *right_table, expanded_query *left_exp
         if (rh->valid) {
             fseek(file, (ph->page_number - 1) * PAGE_SIZE + current_pointer + sizeof(struct row_header), SEEK_SET);
             fread(pointer_to_read_row, left_table->table_schema->row_length, 1,
-                  file); //прочитали всю строку и у нас есть указатель на нее
+                  file);
             joined_count += try_connect_with_right_table(file, left_table, right_table, left_expanded, right_expanded,
                                                          pointer_to_read_row);
         }
@@ -688,11 +688,11 @@ uint32_t try_connect_with_right_table(FILE *file, table *left_table, table *righ
 
     struct page_header *ph = malloc(sizeof(struct page_header));
     fseek(file, (right_table->table_header->first_page_number - 1) * PAGE_SIZE, SEEK_SET);
-    fread(ph, sizeof(struct page_header), 1, file); //прочитали заголовок страницы
+    fread(ph, sizeof(struct page_header), 1, file);
 
     fseek(file, (right_table->table_header->first_page_number - 1) * PAGE_SIZE + sizeof(struct page_header) +
                 sizeof(uint16_t) + sizeof(struct column) * right_table->table_schema->column_count,
-          SEEK_SET); //передвинулись на начало строк
+          SEEK_SET);
 
     while (current_pointer != ph->page_free_space_seek) {
 
@@ -701,7 +701,7 @@ uint32_t try_connect_with_right_table(FILE *file, table *left_table, table *righ
         if (rh->valid) {
             fseek(file, (ph->page_number - 1) * PAGE_SIZE + current_pointer + sizeof(struct row_header), SEEK_SET);
             fread(pointer_to_read_row, right_table->table_schema->row_length, 1,
-                  file); //прочитали всю строку и у нас есть указатель на нее
+                  file);
             switch (right_expanded->column_type) {
                 case TYPE_INT32:
                     if (join_compare_int(row_from_left_table, pointer_to_read_row, left_expanded, right_expanded,
