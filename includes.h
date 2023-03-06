@@ -2,6 +2,8 @@
 #define LOW_LEVEL_PROGRAMMING_1_INCLUDES_H
 
 #include "inttypes.h"
+#include "sys/types.h"
+#include "sys/mman.h"
 #include "string.h"
 #include "stddef.h"
 #include "stdbool.h"

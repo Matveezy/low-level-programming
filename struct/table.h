@@ -4,41 +4,56 @@
 #include "../includes.h"
 #include "database.h"
 
-#define COLUMN_NAME_LENGTH 32
+#define COLUMN_NAME_LENGTH 20
+#define MAX_TABLE_HEADER_NAME_LENGTH 20
 #define TABLE_NAME_LENGTH 32
 
 typedef uint64_t row_length;
 typedef struct table_header table_header;
+typedef struct row_header row_header;
+typedef struct row row;
+typedef enum column_type column_type;
+typedef struct column column;
+typedef struct table_schema table_schema;
+typedef struct table table;
+typedef struct expanded_query expanded_query;
 
-typedef enum column_type {
+enum column_type {
     TYPE_BOOL = 0,
     TYPE_INT32,
     TYPE_FLOAT,
     TYPE_STRING
-} column_type;
+};
 
-typedef struct column {
+struct expanded_query {
+    column_type column_type;
+    char column_name[COLUMN_NAME_LENGTH];
+    uint16_t column_size;
+    uint32_t offset;
+};
+
+struct column {
     char column_name[COLUMN_NAME_LENGTH];
     column_type column_type;
     uint16_t column_size;
     uint32_t offset;
     struct column *next;
-} column;
+};
 
-typedef struct table_schema {
+struct table_schema {
     uint32_t column_count;
     row_length row_length;
     column *columns;
     column *last_column;
-} table_schema;
+};
 
-typedef struct table {
+struct table {
     table_schema *table_schema;
     table_header *table_header;
-} table;
+};
 
-typedef struct table_header {
-    char name[COLUMN_NAME_LENGTH];
+struct table_header {
+    char name[MAX_TABLE_HEADER_NAME_LENGTH];
     table *table;
     database *database;
     table_schema table_schema;
@@ -48,11 +63,17 @@ typedef struct table_header {
     uint32_t first_page_number;
     uint32_t last_page_number;
     bool valid;
-} table_header;
+};
 
-typedef struct row {
-    bool valid;
+struct row {
+    row_header *row_header;
     table *table;
     void **data;
-} row;
+};
+
+struct row_header {
+    bool valid;
+};
+
+
 #endif //LOW_LEVEL_PROGRAMMING_1_TABLE_H
