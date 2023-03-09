@@ -22,5 +22,5 @@ exec:
 	./main
 
 clean:
-	del -rf *.o; \
+	del -rf *.o; \\
 	del main.exe
