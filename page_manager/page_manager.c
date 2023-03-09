@@ -61,33 +61,6 @@ struct page_header *add_page(table_header *table_header, database_header *db_hea
     }
 }
 
-database *create_database(char *filename) {
-    database *created_db = malloc(sizeof(struct database));
-
-    store_file file = file_open_or_create(filename);
-    if (file.state == EXCELLENT || file.state == CREATED_FILE) {
-        printf("Файл успешно создан!\n");
-    } else if (file.state == CREATE_ERROR) {
-        printf("Не удалось создать файл!\n");
-    }
-
-    database_header *db_header = malloc(sizeof(struct database_header));
-    strncpy(db_header->database_name, "", DB_NAME_LENGTH);
-    strncpy(db_header->database_name, filename, strlen(filename));
-
-    db_header->table_count = 0;
-    db_header->page_count = 0;
-    db_header->page_size = PAGE_SIZE;
-    db_header->last_page_number = 0;
-    db_header->db = created_db;
-
-    page_header *meta_page_header = add_meta_page(db_header);
-
-//    write_db_to_file(in, db_header, tech_page_header);
-
-    return created_db;
-}
-
 database *get_database_from_file(const char *filename) {
     database *db = malloc(sizeof(struct database));
     database_header *db_header = malloc(sizeof(struct database_header));
@@ -158,7 +131,7 @@ void close_table(table *table) {
 //    destroy_column_list(table->table_schema->columns);
 //    free(table->table_schema->columns);
     free(table->table_header);
-    free(table->table_schema);
+//    free(table->table_schema);
     free(table);
 }
 
@@ -209,11 +182,11 @@ table *get_table(const char *table_name, database *db) {
     }
 }
 
-database *get_prepared_database(const char *filename, database_type database_type) {
+database *init_database(const char *filename, database_type database_type) {
     switch (database_type) {
-        case EXISTING:
+        case EXIST:
             return get_database_from_file(filename);
-        case TO_BE_CREATED:
+        case CREATE:
             return create_database_in_file(filename);
     }
 }
@@ -253,7 +226,7 @@ database *create_database_in_file(const char *filename) {
 
 query *create_query(query_type query_type, table *tables, char *column[], void *values[], int32_t row_count) {
     query *new_query = malloc(sizeof(struct query));
-    new_query->q_type = query_type;
+    new_query->query_type = query_type;
     new_query->table = tables;
     new_query->column_name = column;
     new_query->column_value = values;
@@ -271,13 +244,13 @@ query_join *create_join_query(table *left_table, table *right_table, char *left_
     return join_query;
 }
 
-void run_query(query *query) {
-    switch (query->q_type) {
+void run_query(query *query, show_mode show_mode) {
+    switch (query->query_type) {
         case SELECT_WHERE:
-            select_row_from_table(query);
+            select_row_from_table(query, show_mode);
             break;
         case UPDATE_WHERE:
-            update_row_in_table(query);
+            update_row_in_table(query, show_mode);
             break;
         case DELETE_WHERE:
             delete_row_from_table(query);
@@ -285,7 +258,7 @@ void run_query(query *query) {
     }
 }
 
-void run_join_query(query_join* query) {
+void run_join_query(query_join* query, show_mode show_mode) {
     bool first_column_exists = false;
     bool second_column_exists = false;
     column_type first_column_type;
@@ -333,7 +306,7 @@ void run_join_query(query_join* query) {
         strncpy(second_expanded->column_name, "", MAX_COLUMN_NAME_LEN);
         strncpy(second_expanded->column_name, second_column_name, MAX_COLUMN_NAME_LEN);
 
-        join(query->left_table->table_header->database->database_file, query->left_table, query->right_table, first_expanded, second_expanded);
+        join(query->left_table->table_header->database->database_file, query->left_table, query->right_table, first_expanded, second_expanded, show_mode);
         free(first_expanded);
         free(second_expanded);
     } else printf("Невозможно выполнить запрос по вашему условию: колонки_ок из запроса нет в таблице\n");

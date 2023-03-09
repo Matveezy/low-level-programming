@@ -40,7 +40,7 @@ void fill_float(row *row, float value, uint32_t offset) {
     *((float *) (pointer_to_write)) = value;
 }
 
-void fill_attribute(row *row, const char *column_name, column_type column_type, void *value, bool is_table_new) {
+void fill_data(row *row, const char *column_name, column_type column_type, void *value) {
 
     read_columns_of_table(row->table->table_header->database->database_file, row->table);
 
@@ -100,11 +100,10 @@ void insert_row(row *row) {
     }
 }
 
-void select_row_from_table(query *query) {
+void select_row_from_table(query *query, show_mode show_mode) {
     bool column_exists = false;
     column_type column_type;
-    char column_name[COLUMN_NAME_LENGTH];
-
+    char column_name[MAX_COLUMN_NAME_LEN];
     uint16_t column_size = 0;
 
     for (size_t i = 0; i < query->table->table_schema->column_count; i++) {
@@ -114,20 +113,17 @@ void select_row_from_table(query *query) {
             strncpy(column_name, query->table->table_schema->columns[i].column_name, MAX_COLUMN_NAME_LEN);
             column_size = query->table->table_schema->columns[i].column_size;
             break;
-        }
+        };
     }
     if (column_exists) {
         uint32_t offset = column_offset(query->table->table_schema->columns, query->table->table_schema->column_count,
                                         query->column_name[0]);
-        select_where(query->table->table_header->database->database_file, query->table, offset, column_size,
-                     query->column_value[0],
-                     column_type, query->rows_number);
-    } else {
-        printf("\nКолонки из запроса нет в таблице!\n");
-    }
+        select_where(query->table->table_header->database->database_file, query->table, offset, query->column_value[0],
+                     column_type, show_mode);
+    } else printf("Невозможно выполнить запрос по вашему условию: колонки из запроса нет в таблице\n");
 }
 
-void update_row_in_table(struct query* query) {
+void update_row_in_table(struct query *query, show_mode show_mode) {
     bool first_column_exists = false;
     bool second_column_exists = false;
     column_type first_column_type;
@@ -137,7 +133,7 @@ void update_row_in_table(struct query* query) {
     uint16_t first_column_size = 0;
     uint16_t second_column_size = 0;
 
-    for (size_t i=0; i<query->table->table_schema->column_count; i++) {
+    for (size_t i = 0; i < query->table->table_schema->column_count; i++) {
         if (strcmp(query->table->table_schema->columns[i].column_name, query->column_name[0]) == 0) {
             first_column_exists = true;
             first_column_type = query->table->table_schema->columns[i].column_type;
@@ -153,10 +149,12 @@ void update_row_in_table(struct query* query) {
     }
 
     if (first_column_exists && second_column_exists) {
-        uint32_t first_offset = column_offset(query->table->table_schema->columns, query->table->table_schema->column_count, first_column_name);
-        uint32_t second_offset = column_offset(query->table->table_schema->columns, query->table->table_schema->column_count, second_column_name);
-        struct expanded_query* first_expanded = malloc(sizeof(struct expanded_query));
-        struct expanded_query* second_expanded = malloc(sizeof(struct expanded_query));
+        uint32_t first_offset = column_offset(query->table->table_schema->columns,
+                                              query->table->table_schema->column_count, first_column_name);
+        uint32_t second_offset = column_offset(query->table->table_schema->columns,
+                                               query->table->table_schema->column_count, second_column_name);
+        struct expanded_query *first_expanded = malloc(sizeof(struct expanded_query));
+        struct expanded_query *second_expanded = malloc(sizeof(struct expanded_query));
 
         first_expanded->column_type = first_column_type;
         first_expanded->column_size = first_column_size;
@@ -170,19 +168,20 @@ void update_row_in_table(struct query* query) {
         strncpy(second_expanded->column_name, "", MAX_COLUMN_NAME_LEN);
         strncpy(second_expanded->column_name, second_column_name, MAX_COLUMN_NAME_LEN);
 
-        update_where(query->table->table_header->database->database_file, query->table, first_expanded, second_expanded, query->column_value);
+        update_where(query->table->table_header->database->database_file, query->table, first_expanded, second_expanded,
+                     query->column_value, show_mode);
         free(first_expanded);
         free(second_expanded);
     } else printf("Невозможно выполнить запрос по вашему условию: колонки_ок из запроса нет в таблице\n");
 }
 
-void delete_row_from_table(query* query) {
+void delete_row_from_table(query *query) {
     bool column_exists = false;
     column_type column_type;
     char column_name[MAX_COLUMN_NAME_LEN];
     uint16_t column_size = 0;
 
-    for (size_t i=0; i<query->table->table_schema->column_count; i++) {
+    for (size_t i = 0; i < query->table->table_schema->column_count; i++) {
         if (strcmp(query->table->table_schema->columns[i].column_name, query->column_name[0]) == 0) {
             column_exists = true;
             column_type = query->table->table_schema->columns[i].column_type;
@@ -193,8 +192,9 @@ void delete_row_from_table(query* query) {
     }
 
     if (column_exists) {
-        uint32_t offset = column_offset(query->table->table_schema->columns, query->table->table_schema->column_count, column_name);
-        struct expanded_query* expanded = malloc(sizeof(struct expanded_query));
+        uint32_t offset = column_offset(query->table->table_schema->columns, query->table->table_schema->column_count,
+                                        column_name);
+        struct expanded_query *expanded = malloc(sizeof(struct expanded_query));
 
         expanded->column_type = column_type;
         expanded->column_size = column_size;
@@ -202,7 +202,8 @@ void delete_row_from_table(query* query) {
         strncpy(expanded->column_name, "", MAX_COLUMN_NAME_LEN);
         strncpy(expanded->column_name, column_name, MAX_COLUMN_NAME_LEN);
 
-        delete_where(query->table->table_header->database->database_file, query->table, expanded, query->column_value[0]);
+        delete_where(query->table->table_header->database->database_file, query->table, expanded,
+                     query->column_value[0]);
         free(expanded);
     } else printf("Невозможно выполнить запрос по вашему условию: колонки из запроса нет в таблице\n");
 }

@@ -84,23 +84,20 @@ bool float_equals(char *, void *, uint32_t);
 
 void print_data(char *, column *, uint16_t);
 
-void select_where(FILE *, table *, uint32_t, uint16_t, void *,
-                  column_type, int32_t);
-
-void select_row_from_table(query *);
+void select_where(FILE *, table*, uint32_t, void*, column_type, show_mode);
 
 void update_content(char *, void *, expanded_query *, table *, uint32_t,
-                    uint32_t);
+                    uint32_t, show_mode);
 
-void update_where(FILE *, table *, expanded_query *, expanded_query *, void **);
+void update_where(FILE *, table *, expanded_query *, expanded_query *, void **, show_mode);
 
 void delete_row(char *, table *, uint32_t, uint32_t);
 
 void delete_where(FILE *, table *, expanded_query *, void *);
 
-void join(FILE *, table *, table *, expanded_query *, expanded_query *);
+void join(FILE *, table *, table *, expanded_query *, expanded_query *, show_mode);
 
-uint32_t try_connect_with_right_table(FILE *, table *, table *, expanded_query *, expanded_query *, char *);
+uint32_t connect_with_right_table(FILE *, table *, table *, expanded_query *, expanded_query *, char *, show_mode);
 
 void print_int(char *, uint32_t);
 

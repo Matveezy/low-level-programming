@@ -13,15 +13,15 @@ void fill_int(row *, int32_t, uint32_t);
 
 int32_t column_offset(column *, size_t, const char *);
 
-void fill_attribute(row *, const char *, column_type, void *, bool);
+void fill_data(row *, const char *, column_type, void *);
 
 void insert_row(row *);
 
-void select_row_from_table(query *);
+void select_row_from_table(query *, show_mode);
 
 void close_row(row *);
 
-void update_row_in_table(query *);
+void update_row_in_table(query *, show_mode);
 
 void delete_row_from_table(query*);
 

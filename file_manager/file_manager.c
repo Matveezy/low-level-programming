@@ -255,7 +255,8 @@ write_status write_db_to_file(FILE *storage, database_header *db_header, page_he
     }
 }
 
-enum write_status write_row_to_page(FILE *file, uint32_t page_to_write_num, struct row *row) {
+
+write_status write_row_to_page(FILE *file, uint32_t page_to_write_num, struct row *row) {
     struct page_header *new_page_header = NULL;
     uint32_t row_len = row->table->table_header->table_schema.row_length;
     uint32_t sum_volume = sizeof(struct row_header) + row_len;
@@ -299,65 +300,71 @@ enum write_status write_row_to_page(FILE *file, uint32_t page_to_write_num, stru
                     return WRITE_ERROR;
                 }
                 if (new_page_header != NULL) free(new_page_header);
-                free(ph_to_write);
                 return WRITE_OK;
             }
         }
         if (new_page_header != NULL) free(new_page_header);
-        free(ph_to_write);
         return WRITE_ERROR;
     } else {
         if (new_page_header != NULL) free(new_page_header);
-        free(ph_to_write);
         return WRITE_ERROR;
     }
 }
 
-void select_where(FILE *storage, table *table, uint32_t offset, uint16_t column_size, void *column_value,
-                  column_type column_type, int32_t row_count) {
+void select_where(FILE *file, struct table *table, uint32_t offset, void *column_value, column_type type,
+                  show_mode show_mode) {
     uint32_t selected_count = 0;
     uint32_t current_pointer =
             sizeof(struct page_header) + sizeof(uint16_t) + sizeof(struct column) * table->table_schema->column_count;
-    row_header *row_header = malloc(sizeof(struct row_header));
-    char *pointer_to_read = malloc(table->table_schema->row_length);
+    struct row_header *rh = malloc(sizeof(struct row_header));
+    char *pointer_to_read_row = malloc(table->table_schema->row_length);
 
-    page_header *page_header = malloc(sizeof(struct page_header));
-    fseek(storage, (table->table_header->first_page_number - 1) * PAGE_SIZE, SEEK_SET);
-    fread(page_header, sizeof(struct page_header), 1, storage);
+    struct page_header *ph = malloc(sizeof(struct page_header));
+    fseek(file, (table->table_header->first_page_number - 1) * PAGE_SIZE, SEEK_SET);
+    fread(ph, sizeof(struct page_header), 1, file);
 
-    fseek(storage,
+    fseek(file,
           (table->table_header->first_page_number - 1) * PAGE_SIZE + sizeof(struct page_header) + sizeof(uint16_t) +
           sizeof(struct column) * table->table_schema->column_count, SEEK_SET);
 
-    while (current_pointer != page_header->page_free_space_seek) {
-        fseek(storage, (page_header->page_number - 1) * PAGE_SIZE + current_pointer, SEEK_SET);
-        fread(row_header, sizeof(struct row_header), 1, storage);
-        if (row_header->valid) {
-            fseek(storage, (page_header->page_number - 1) * PAGE_SIZE + current_pointer + sizeof(struct row_header),
-                  SEEK_SET);
-            fread(pointer_to_read, table->table_schema->row_length, 1, storage);
-            switch (column_type) {
+    while (current_pointer != ph->page_free_space_seek) {
+
+        fseek(file, (ph->page_number - 1) * PAGE_SIZE + current_pointer, SEEK_SET);
+        fread(rh, sizeof(struct row_header), 1, file);
+        if (rh->valid) {
+            fseek(file, (ph->page_number - 1) * PAGE_SIZE + current_pointer + sizeof(struct row_header), SEEK_SET);
+            fread(pointer_to_read_row, table->table_schema->row_length, 1,
+                  file);
+            switch (type) {
                 case TYPE_INT32:
-                    if (int_equals(pointer_to_read, column_value, offset)) {
-                        print_data(pointer_to_read, table->table_schema->columns, table->table_schema->column_count);
-                        selected_count++;
-                    }
-                    break;
-                case TYPE_FLOAT:
-                    if (float_equals(pointer_to_read, column_value, offset)) {
-                        print_data(pointer_to_read, table->table_schema->columns, table->table_schema->column_count);
+                    if (int_equals(pointer_to_read_row, column_value, offset)) {
+                        if (SHOW_ROWS == show_mode)
+                            print_data(pointer_to_read_row, table->table_schema->columns,
+                                       table->table_schema->column_count);
                         selected_count++;
                     }
                     break;
                 case TYPE_BOOL:
-                    if (bool_equals(pointer_to_read, column_value, offset)) {
-                        print_data(pointer_to_read, table->table_schema->columns, table->table_schema->column_count);
+                    if (bool_equals(pointer_to_read_row, column_value, offset)) {
+                        if (SHOW_ROWS == show_mode)
+                            print_data(pointer_to_read_row, table->table_schema->columns,
+                                       table->table_schema->column_count);
                         selected_count++;
                     }
                     break;
                 case TYPE_STRING:
-                    if (string_equals(pointer_to_read, column_value, offset)) {
-                        print_data(pointer_to_read, table->table_schema->columns, table->table_schema->column_count);
+                    if (string_equals(pointer_to_read_row, column_value, offset)) {
+                        if (SHOW_ROWS == show_mode)
+                            print_data(pointer_to_read_row, table->table_schema->columns,
+                                       table->table_schema->column_count);
+                        selected_count++;
+                    }
+                    break;
+                case TYPE_FLOAT:
+                    if (float_equals(pointer_to_read_row, column_value, offset)) {
+                        if (SHOW_ROWS == show_mode)
+                            print_data(pointer_to_read_row, table->table_schema->columns,
+                                       table->table_schema->column_count);
                         selected_count++;
                     }
                     break;
@@ -366,26 +373,26 @@ void select_where(FILE *storage, table *table, uint32_t offset, uint16_t column_
 
         current_pointer += sizeof(struct row_header) + table->table_schema->row_length;
 
-        if (page_header->next_page_number != 0 && current_pointer != page_header->page_free_space_seek) {
-            current_pointer +=
-                    sizeof(struct page_header) + sizeof(uint16_t) +
-                    sizeof(struct column) * table->table_schema->column_count;
-            fseek(storage, (page_header->next_page_number - 1) * PAGE_SIZE, SEEK_SET);
-            fread(page_header, sizeof(struct page_header), 1, storage);
-            fseek(storage, (page_header->next_page_number - 1) * PAGE_SIZE + sizeof(uint16_t) +
-                           sizeof(struct column) * table->table_schema->column_count, SEEK_SET);
+        if (ph->next_page_number != 0 && current_pointer == ph->page_free_space_seek) {
+            current_pointer = sizeof(struct page_header) + sizeof(uint16_t) +
+                              sizeof(struct column) * table->table_schema->column_count;
+            fseek(file, (ph->next_page_number - 1) * PAGE_SIZE, SEEK_SET);
+            fread(ph, sizeof(struct page_header), 1, file);
+            fseek(file, (ph->page_number - 1) * PAGE_SIZE + sizeof(struct page_header) + sizeof(uint16_t) +
+                        sizeof(struct column) * table->table_schema->column_count, SEEK_SET);
         }
-    }
 
-    free(row_header);
-    free(page_header);
-    free(pointer_to_read);
-    printf("\n");
-    printf("Amount of rows:%d\n", selected_count);
+    }
+    free(rh);
+    free(ph);
+    free(pointer_to_read_row);
+    printf("=====================\n");
+    printf("Всего %d строк\n", selected_count);
 }
 
 void
-update_where(FILE *file, struct table *table, expanded_query *first, expanded_query *second, void **column_values) {
+update_where(FILE *file, struct table *table, expanded_query *first, expanded_query *second, void **column_values,
+             show_mode show_mode) {
     uint32_t updated_count = 0;
     uint32_t current_pointer =
             sizeof(struct page_header) + sizeof(uint16_t) + sizeof(struct column) * table->table_schema->column_count;
@@ -414,28 +421,28 @@ update_where(FILE *file, struct table *table, expanded_query *first, expanded_qu
                 case TYPE_INT32:
                     if (int_equals(pointer_to_read_row, column_values[0], first->offset)) {
                         update_content(pointer_to_read_row, column_values[1], second, table, pointer_to_update,
-                                       ph->page_number);
+                                       ph->page_number, show_mode);
                         updated_count++;
                     }
                     break;
                 case TYPE_BOOL:
                     if (bool_equals(pointer_to_read_row, column_values[0], first->offset)) {
                         update_content(pointer_to_read_row, column_values[1], second, table, pointer_to_update,
-                                       ph->page_number);
+                                       ph->page_number, show_mode);
                         updated_count++;
                     }
                     break;
                 case TYPE_STRING:
                     if (string_equals(pointer_to_read_row, column_values[0], first->offset)) {
                         update_content(pointer_to_read_row, column_values[1], second, table, pointer_to_update,
-                                       ph->page_number);
+                                       ph->page_number, show_mode);
                         updated_count++;
                     }
                     break;
                 case TYPE_FLOAT:
                     if (float_equals(pointer_to_read_row, column_values[0], first->offset)) {
                         update_content(pointer_to_read_row, column_values[1], second, table, pointer_to_update,
-                                       ph->page_number);
+                                       ph->page_number, show_mode);
                         updated_count++;
                     }
                     break;
@@ -541,7 +548,8 @@ void delete_row(char *row_start, table *table, uint32_t pointer_to_delete, uint3
 }
 
 void
-join(FILE *file, table *left_table, table *right_table, expanded_query *left_expanded, expanded_query *right_expanded) {
+join(FILE *file, table *left_table, table *right_table, expanded_query *left_expanded, expanded_query *right_expanded,
+     show_mode show_mode) {
     uint32_t joined_count = 0;
     uint32_t current_pointer = sizeof(struct page_header) + sizeof(uint16_t) +
                                sizeof(struct column) * left_table->table_schema->column_count;
@@ -564,8 +572,8 @@ join(FILE *file, table *left_table, table *right_table, expanded_query *left_exp
             fseek(file, (ph->page_number - 1) * PAGE_SIZE + current_pointer + sizeof(struct row_header), SEEK_SET);
             fread(pointer_to_read_row, left_table->table_schema->row_length, 1,
                   file);
-            joined_count += try_connect_with_right_table(file, left_table, right_table, left_expanded, right_expanded,
-                                                         pointer_to_read_row);
+            joined_count += connect_with_right_table(file, left_table, right_table, left_expanded, right_expanded,
+                                                         pointer_to_read_row, show_mode);
         }
 
         current_pointer += sizeof(struct row_header) + left_table->table_schema->row_length;
@@ -635,52 +643,69 @@ void print_joined_content(char *row_start_left, char *row_start_right, table *le
 }
 
 bool join_compare_int(char *row_from_left_table, char *row_from_right_table, struct expanded_query *left_expanded,
-                      struct expanded_query *right_expanded, struct table *left_table, struct table *right_table) {
+                      struct expanded_query *right_expanded, struct table *left_table, struct table *right_table,
+                      show_mode show_mode) {
     int32_t *left_value = (int32_t *) (row_from_left_table + left_expanded->offset);
     int32_t *right_value = (int32_t *) (row_from_right_table + right_expanded->offset);
     if (*left_value == *right_value) {
-        print_joined_content(row_from_left_table, row_from_right_table, left_table, right_table, left_expanded->offset,
-                             right_expanded->offset);
+        if (show_mode == SHOW_ROWS) {
+            print_joined_content(row_from_left_table, row_from_right_table, left_table, right_table,
+                                 left_expanded->offset,
+                                 right_expanded->offset);
+        }
+
         return true;
     } else return false;
 }
 
 bool join_compare_bool(char *row_from_left_table, char *row_from_right_table, struct expanded_query *left_expanded,
-                       struct expanded_query *right_expanded, struct table *left_table, struct table *right_table) {
+                       struct expanded_query *right_expanded, struct table *left_table, struct table *right_table,
+                       show_mode show_mode) {
     bool *left_value = (bool *) (row_from_left_table + left_expanded->offset);
     bool *right_value = (bool *) (row_from_right_table + right_expanded->offset);
     if (*left_value == *right_value) {
-        print_joined_content(row_from_left_table, row_from_right_table, left_table, right_table, left_expanded->offset,
-                             right_expanded->offset);
+        if (show_mode == SHOW_ROWS) {
+            print_joined_content(row_from_left_table, row_from_right_table, left_table, right_table,
+                                 left_expanded->offset,
+                                 right_expanded->offset);
+        }
         return true;
     } else return false;
 }
 
 bool join_compare_string(char *row_from_left_table, char *row_from_right_table, struct expanded_query *left_expanded,
-                         struct expanded_query *right_expanded, struct table *left_table, struct table *right_table) {
+                         struct expanded_query *right_expanded, struct table *left_table, struct table *right_table,
+                         show_mode show_mode) {
     char *left_value = (char *) (row_from_left_table + left_expanded->offset);
     char *right_value = (char *) (row_from_right_table + right_expanded->offset);
     if (strcmp(left_value, right_value) == 0) {
-        print_joined_content(row_from_left_table, row_from_right_table, left_table, right_table, left_expanded->offset,
-                             right_expanded->offset);
+        if (show_mode == SHOW_ROWS) {
+            print_joined_content(row_from_left_table, row_from_right_table, left_table, right_table,
+                                 left_expanded->offset,
+                                 right_expanded->offset);
+        }
         return true;
     } else return false;
 }
 
 bool join_compare_float(char *row_from_left_table, char *row_from_right_table, struct expanded_query *left_expanded,
-                        struct expanded_query *right_expanded, struct table *left_table, struct table *right_table) {
+                        struct expanded_query *right_expanded, struct table *left_table, struct table *right_table,
+                        show_mode show_mode) {
     double *left_value = (double *) (row_from_left_table + left_expanded->offset);
     double *right_value = (double *) (row_from_right_table + right_expanded->offset);
     if (*left_value == *right_value) {
-        print_joined_content(row_from_left_table, row_from_right_table, left_table, right_table, left_expanded->offset,
-                             right_expanded->offset);
+        if (show_mode == SHOW_ROWS) {
+            print_joined_content(row_from_left_table, row_from_right_table, left_table, right_table,
+                                 left_expanded->offset,
+                                 right_expanded->offset);
+        }
         return true;
     } else return false;
 }
 
 
-uint32_t try_connect_with_right_table(FILE *file, table *left_table, table *right_table, expanded_query *left_expanded,
-                                      expanded_query *right_expanded, char *row_from_left_table) {
+uint32_t connect_with_right_table(FILE *file, table *left_table, table *right_table, expanded_query *left_expanded,
+                                      expanded_query *right_expanded, char *row_from_left_table, show_mode show_mode) {
     uint32_t current_pointer = sizeof(struct page_header) + sizeof(uint16_t) +
                                sizeof(struct column) * right_table->table_schema->column_count;
     struct row_header *rh = malloc(sizeof(struct row_header));
@@ -705,25 +730,25 @@ uint32_t try_connect_with_right_table(FILE *file, table *left_table, table *righ
             switch (right_expanded->column_type) {
                 case TYPE_INT32:
                     if (join_compare_int(row_from_left_table, pointer_to_read_row, left_expanded, right_expanded,
-                                         left_table, right_table)) {
+                                         left_table, right_table, show_mode)) {
                         return 1;
                     }
                     break;
                 case TYPE_BOOL:
                     if (join_compare_bool(row_from_left_table, pointer_to_read_row, left_expanded, right_expanded,
-                                          left_table, right_table)) {
+                                          left_table, right_table, show_mode)) {
                         return 1;
                     }
                     break;
                 case TYPE_STRING:
                     if (join_compare_string(row_from_left_table, pointer_to_read_row, left_expanded, right_expanded,
-                                            left_table, right_table)) {
+                                            left_table, right_table, show_mode)) {
                         return 1;
                     }
                     break;
                 case TYPE_FLOAT:
                     if (join_compare_float(row_from_left_table, pointer_to_read_row, left_expanded, right_expanded,
-                                           left_table, right_table)) {
+                                           left_table, right_table, show_mode)) {
                         return 1;
                     }
                     break;
@@ -840,7 +865,7 @@ void print_data(char *row_start, column *columns, uint16_t len) {
 
 void
 update_content(char *row_start, void *column_value, expanded_query *second, table *table, uint32_t pointer_to_update,
-               uint32_t page_general_number) {
+               uint32_t page_general_number, show_mode show_mode) {
     switch (second->column_type) {
         case TYPE_INT32:
             update_int(row_start, column_value, second->offset);
@@ -860,7 +885,7 @@ update_content(char *row_start, void *column_value, expanded_query *second, tabl
           SEEK_SET);
     fwrite(row_start, table->table_schema->row_length, 1, table->table_header->database->database_file);
 
-    print_data(row_start, table->table_schema->columns, table->table_schema->column_count);
+    if (SHOW_ROWS == show_mode) print_data(row_start, table->table_schema->columns, table->table_schema->column_count);
 }
 
 

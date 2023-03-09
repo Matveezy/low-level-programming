@@ -16,7 +16,7 @@ enum query_type {
 };
 
 struct query {
-    enum query_type q_type;
+    enum query_type query_type;
 
     struct table *table;
     char **column_name;

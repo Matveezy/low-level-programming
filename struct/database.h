@@ -25,8 +25,8 @@ struct database {
 };
 
 enum database_type {
-    EXISTING = 0,
-    TO_BE_CREATED
+    EXIST = 0,
+    CREATE
 };
 
 #endif //LOW_LEVEL_PROGRAMMING_1_DATABASE_H

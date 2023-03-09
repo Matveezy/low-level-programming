@@ -1,7 +1,13 @@
-#include "file_manager/file_manager.h"
+#include "tests/tests.h"
 
 int main() {
-    fileOpenOrCreate("./testfile.data");
-
+//    write_to_db();
+//    read_from_db();
+//    insert();
+//    update();
+//    select();
+//    delete();
+//    join_tables();
+//    file_size();
     return 0;
 }

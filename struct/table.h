@@ -36,8 +36,7 @@ struct column {
     char column_name[COLUMN_NAME_LENGTH];
     column_type column_type;
     uint16_t column_size;
-    uint32_t offset;
-    struct column *next;
+    column *next;
 };
 
 struct table_schema {
@@ -74,6 +73,5 @@ struct row {
 struct row_header {
     bool valid;
 };
-
 
 #endif //LOW_LEVEL_PROGRAMMING_1_TABLE_H
