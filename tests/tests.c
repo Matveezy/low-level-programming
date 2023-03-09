@@ -33,7 +33,6 @@ container *create_people_test_container(database *db) {
 }
 
 void write_to_db() {
-    printf("Write db test!\n");
     database *my_db = init_database("db.data", CREATE);
 
     container *cars_container = create_cars_test_container(my_db);
@@ -101,7 +100,6 @@ void write_to_db() {
 
 
 void read_from_db() {
-
     database *my_existing_db = init_database("db.data", EXIST);
     table *cars_table = get_table("cars", my_existing_db);
     row *cars_row = create_row(cars_table);
@@ -144,49 +142,15 @@ void read_from_db() {
     query *select_query2 = create_query(SELECT_WHERE, cars_table, column2, value2, -1);
     run_query(select_query2, SHOW_ROWS);
 
-    printf("\n SELECT * from cars WHERE is_release IS TRUE\n");
-    char *column3[1] = {"is_release"};
-    void *value3[1] = {&is_release};
-    query *select_query3 = create_query(SELECT_WHERE, cars_table, column3, value3, -1);
-    run_query(select_query3, SHOW_ROWS);
-
-
-    printf("\nUPDATE cars SET power = 650 where brand = AUDI\n");
-    char *columns[2] = {"brand", "power"};
-    char *rs6_model = "RS6";
-    void *values[2] = {&brand, &power};
-    query *update_query = create_query(UPDATE_WHERE, cars_table, columns, values, -1);
-    run_query(update_query, SHOW_ROWS);
-
-    printf("\nDELETE * FROM cars WHERE model = RS5\n");
-    char *rs5_model = "RS5";
-    char *column_model[1] = {"model"};
-    void *value_rs5[1] = {&rs5_model};
-    query *delete_query = create_query(DELETE_WHERE, cars_table, column_model, value_rs5, -1);
-    run_query(delete_query, SHOW_ROWS);
-
-    printf("\nSELECT * FROM people WHERE people.car_id = 1\n");
-    char *column5[1] = {"car_id"};
-    uint car_id = 1;
-    void *column_value5[1] = {&car_id};
-    query *select_people_query = create_query(SELECT_WHERE, people_table, column5, column_value5, -1);
-    run_query(select_people_query, SHOW_ROWS);
-
     close_database(my_existing_db);
     close_row(cars_row);
     close_query(select_query);
     close_query(select_query2);
-    close_query(select_query3);
-    close_query(select_people_query);
-    close_query(delete_query);
     close_table(cars_table);
     close_table(people_table);
 }
 
-
 void insert() {
-    printf("\nINSERT TEST\n");
-
     database *insert_db_test = init_database("db_insert.data", CREATE);
 
     container *cars_container = create_cars_test_container(insert_db_test);
@@ -237,8 +201,6 @@ void insert() {
 
 
 void select() {
-    printf("\nSELECT TEST\n");
-
     database *select_db_test = init_database("db_select.data", CREATE);
     FILE *select_report;
     select_report = fopen("select_report.csv", "w");
@@ -291,8 +253,6 @@ void select() {
 }
 
 void delete() {
-    printf("TEST DELETE\n");
-
     database *delete_db_test = init_database("db_delete.data", CREATE);
     FILE *delete_report;
     delete_report = fopen("delete_report.csv", "w");
@@ -340,11 +300,8 @@ void delete() {
 }
 
 void update() {
-    printf("TEST UPDATE\n");
-
     FILE *update_report;
     update_report = fopen("update_report.csv", "w");
-
 
     database *update_db_test = init_database("db_update.data", CREATE);
     container *cars_container = create_cars_test_container(update_db_test);
@@ -396,9 +353,6 @@ void update() {
 }
 
 void join_tables() {
-    printf("TEST JOIN\n");
-
-
     FILE *join_report;
     join_report = fopen("join_report.csv", "w");
     database *join_db_test = init_database("db_join.data", CREATE);
@@ -483,7 +437,7 @@ void join_tables() {
             insert_row(people_container->row);
         }
         begin = clock();
-        run_join_query(join_query);
+        run_join_query(join_query, NO_ROWS);
         end = clock();
         time = (float) (end - begin) / CLOCKS_PER_SEC;
         fprintf(join_report, "%d,%f\n", 1000 * (j + 1), time);
