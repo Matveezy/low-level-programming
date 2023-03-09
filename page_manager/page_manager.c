@@ -76,8 +76,6 @@ database *get_database_from_file(const char *filename) {
             break;
     }
 
-//    storage = fopen(filename, "rb+");
-
     read_status db_header_read_status = read_database_header(storage, db_header);
     if (READ_OK == db_header_read_status) {
         db_header->db = db;
@@ -128,10 +126,7 @@ table *create_table_from_schema(table_schema *table_schema, database *db, const 
 }
 
 void close_table(table *table) {
-//    destroy_column_list(table->table_schema->columns);
-//    free(table->table_schema->columns);
     free(table->table_header);
-//    free(table->table_schema);
     free(table);
 }
 
